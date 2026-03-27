@@ -21,7 +21,6 @@ import {
 } from "jsonc-parser"
 import { Instance, type InstanceContext } from "../project/instance"
 import { LSPServer } from "../lsp/server"
-import { BunProc } from "@/bun"
 import { Installation } from "@/installation"
 import { ConfigMarkdown } from "./markdown"
 import { constants, existsSync } from "fs"
@@ -29,12 +28,11 @@ import { Bus } from "@/bus"
 import { GlobalBus } from "@/bus/global"
 import { Event } from "../server/event"
 import { Glob } from "../util/glob"
-import { PackageRegistry } from "@/bun/registry"
-import { proxied } from "@/util/proxied"
 import { iife } from "@/util/iife"
 import { Account } from "@/account"
 import { ConfigPaths } from "./paths"
 import { Filesystem } from "@/util/filesystem"
+import { Npm } from "@/npm"
 import { Process } from "@/util/process"
 import { Lock } from "@/util/lock"
 import { AppFileSystem } from "@/filesystem"
@@ -99,14 +97,7 @@ export namespace Config {
     // Install any additional dependencies defined in the package.json
     // This allows local plugins and custom tools to use external packages
     using _ = await Lock.write("bun-install")
-    await BunProc.run(
-      [
-        "install",
-        // TODO: get rid of this case (see: https://github.com/oven-sh/bun/issues/19936)
-        ...(proxied() || process.env.CI ? ["--no-cache"] : []),
-      ],
-      { cwd: dir },
-    ).catch((err) => {
+    await Npm.install(dir).catch((err: unknown) => {
       if (err instanceof Process.RunFailedError) {
         const detail = {
           dir,
@@ -163,7 +154,7 @@ export namespace Config {
 
     const targetVersion = Installation.isLocal() ? "latest" : Installation.VERSION
     if (targetVersion === "latest") {
-      const isOutdated = await PackageRegistry.isOutdated("@opencode-ai/plugin", depVersion, dir)
+      const isOutdated = await Npm.outdated("@opencode-ai/plugin", depVersion)
       if (!isOutdated) return false
       log.info("Cached version is outdated, proceeding with install", {
         pkg: "@opencode-ai/plugin",
