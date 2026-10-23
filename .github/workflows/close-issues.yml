@@ -1,12 +1,14 @@
 name: close-issues
 
+# Paused at the repository owner's request.
+# Original automatic trigger: schedule, cron "0 2 * * *".
+# To restore execution, restore that trigger and remove the job-level guard below.
 on:
-  schedule:
-    - cron: "0 2 * * *" # Daily at 2:00 AM
   workflow_dispatch:
 
 jobs:
   close:
+    if: ${{ false }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
